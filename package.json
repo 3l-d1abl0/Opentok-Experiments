@@ -1,0 +1,21 @@
+{
+  "name": "moxtra",
+  "version": "1.0.0",
+  "description": "just playing around",
+  "main": "app.js",
+  "scripts": {
+    "test": ":P"
+  },
+  "repository": {
+    "type": "git",
+    "url": "none"
+  },
+  "keywords": [
+    "qqq"
+  ],
+  "author": "3l-d1abl0",
+  "license": "ISC",
+  "dependencies": {
+    "opentok": "^2.3.0"
+  }
+}
