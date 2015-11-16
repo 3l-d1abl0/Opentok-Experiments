@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title> OpenTok Getting Started </title>
+    <link href="/css/app.css" rel="stylesheet" type="text/css">
+
+    <!-- <script src="https://static.opentok.com/v2/js/opentok.js"></script> -->
+    <script src="/js/opentok.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+</head>
+
+<body>
+
+    <script type="text/javascript">
+        var session;
+        var connectionCount = 0;
+
+        if (OT.checkSystemRequirements() == 1) {
+
+                function connect() {
+          
+            
+
+                                      // Replace apiKey and sessionId with your own values:
+                      session = OT.initSession(<%= APIKey %>, '<%= session_id %>' );
+
+                        
+
+                            // Subscribe to a newly created stream
+                          session.on('streamCreated', function(event) {
+                          session.subscribe(event.stream, 'subscriber', {
+                            insertMode: 'append',
+                            width: '100%',
+                            height: '100%'
+                          });
+                        });
+                        
+
+                        session.on({
+
+                        connectionCreated: function (event) {
+                          connectionCount++;
+                          console.log(connectionCount + ' connections.');
+                        },
+                        connectionDestroyed: function (event) {
+                          connectionCount--;
+                          console.log(connectionCount + ' connections.');
+                        },
+                        sessionDisconnected: function sessionDisconnectHandler(event) {
+                          // The event is defined by the SessionDisconnectEvent class
+                          console.log('Disconnected from the session.');
+                          //document.getElementById('disconnectBtn').css("display","none");
+                          if (event.reason == 'networkDisconnected') {
+                            alert('Your network connection terminated.')
+                          }
+                        }
+
+
+                      });
+
+                        
+
+
+
+                      // Replace token with your own value:
+                      session.connect('<%= tok %>', function(error) {
+                        if (error) {
+                          console.log('Unable to connect: ', error.message);
+                        } else {
+                          //document.getElementById('disconnectBtn').css("display","none");
+
+                                <% if(role=='pub'){ %>
+                                var publisher = OT.initPublisher('publisher', {
+                                    insertMode: 'append',
+                                    width: '100%',
+                                    height: '100%'
+                                  });
+
+                                  session.publish(publisher);
+                                <% } %>
+
+                          alert('Connected to the session.');
+                          connectionCount = 1;
+                        }
+                      });
+                    
+
+                    function disconnect() {
+                      session.disconnect();
+                    }
+
+
+                }
+                    connect();
+
+
+
+            } 
+            else {
+                alert('Not Supported !');
+            }
+
+
+   </script>
+
+    <div id="token_heading"><%= tok %></div>
+    <div id="token_heading"><%= APIKey %></div>
+    <div id="token_heading"><%= session_id %></div>
+
+    <div id="videos">
+        <div id="subscriber"></div>
+        <div id="publisher"></div>
+    </div>
+
+    <script type="text/javascript" src="/js/config.js"></script>
+    <!-- <script type="text/javascript" src="/js/app.js"></script> -->
+</body>
+
+</html>
