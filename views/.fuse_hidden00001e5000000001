@@ -1,0 +1,320 @@
+<html>
+<head>
+  <title> Testing Screen Sharing!</title>
+
+    <link href="/css/app.css" rel="stylesheet" type="text/css">
+    <script src="https://static.opentok.com/v2/js/opentok.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+</head>
+<body>
+  <!-- <div id="camera"></div> -->
+  <div id="screen-preview"></div>
+  <div id="screen-container">
+          <div id="show-screen"></div>
+  </div>
+  
+  <div id="just-div"></div><br><br><br>
+  <% if(role=='publisher'){ %>
+                  <button onclick="javascript:screenshare('screen');" id="startBtn" >Share Screen !</button><br><br>
+                  <button onclick="javascript:stopSharing();" id="stopBtn" >Stop Sharing !!!</button><br><br>
+                  <button onclick="javascript:screenshare('window');" id="winBtn" >Share Window !</button><br><br>
+    <% } %>
+    <br><br><br><br>
+    <div id="user-list"></div>
+    <button onclick="javascript:disconnect();" id="disBtn" >Disconnect From Session !</button>
+
+
+  <script type="text/javascript">
+
+  <% if(role=='subscriber'){ %>
+              $('#screen-preview').css('display','none');
+    <% }else 
+          if(role=='publisher') { %>
+              $('#show-screen').css('display','none');
+    <% }%>
+
+    
+    // Go to https://dashboard.tokbox.com/ to find your OpenTok
+    // API key and generate a test session ID and token:
+      var apiKey    = '<%= APIKey %>';
+      var sessionId = '<%= session_id %>';
+      var token     = '<%= tok %>';
+
+      var connectionCount =0;
+      var my_conId='';
+      var h = document.getElementById('screen-preview').clientHeight;
+      var w = document.getElementById('screen-preview').clientWidth;
+      //alert('h :'+h +'    w: '+w);
+
+    var session = OT.initSession(apiKey, sessionId);
+
+    console.log('Session:  ');
+    console.log(session);
+
+
+    var uname=[ ];
+    var my_name= '<%= user_name%>';
+
+    window.onbeforeunload = function () {
+      session.signal(
+              {
+                data: my_name,
+                type: "remove"
+              },
+              function(error) {
+                if (error) {
+                  console.log("signal error ("
+                               + error.code
+                               + "): " + error.message);
+                } else {
+                  console.log("Remove signal sent to ");
+                  return true;
+                }
+              }
+            );
+        //return "Do you really want to close?";
+    };
+
+    // Connect to the Session
+    session.connect(token, function(error) { 
+      alert('Connected to Session !');
+      console.log("ERR:::: "+error);
+      //console.log(session.connection.connectionId);
+      my_conId=session.connection.connectionId;     
+
+          <% if(role=='publisher'){ %>
+                  //alert('sharing... ');
+                  var screenSharingPublisher;
+                  //screenshare();
+          <% } %>
+
+          session.signal( { data: my_name,
+                            type:"newuser"
+                          },
+                          function(error) {
+                            if (error) {
+                              console.log("signal error ("
+                                           + error.code
+                                           + "): " + error.message);
+                            } else {
+                              console.log("Newuser signal sent.");
+                            }
+                          }
+            );
+    });
+
+    // Subscribe to a newly created stream
+    session.on('streamCreated', function(event) {
+        console.log(event);
+      //session.subscribe(event.stream);
+          alert('Connecting.... ');
+          session.subscribe(event.stream, 'show-screen', {
+              fitMode: 'contain',
+              width: document.getElementById('show-screen').clientWidth,
+              height: document.getElementById('show-screen').clientHeight
+          });
+    });
+
+
+    OT.getDevices(function(error, devices){
+          console.log("Devices Err: "+error);
+          console.log(devices);
+    });
+
+    session.on('streamDestroyed', function(event) {  
+      console.log('Destroyed : XXXXXXXX  '+ event.reason);
+      //console.log(event);
+
+      if (event.reason === 'mediaStopped') {
+        // User clicked stop sharing
+        alert('mediaStopped');
+      } else if (event.reason === 'forceUnpublished') {
+        // A moderator forced the user to stop sharing.
+        alert('forceUnpublished');
+      }else if(event.reason=== 'clientDisconnected'){
+        alert('clientDisconnected');
+      }else if(event.reason=== 'networkDisconnected'){
+
+      }
+      var newDiv = document.createElement("div");
+      newDiv.setAttribute("id", "show-screen");
+      document.getElementById('screen-container').appendChild(newDiv);
+    });
+
+    session.on({
+
+                connectionCreated: function (event) {
+                          connectionCount++;
+                          console.log(event.connection);
+                          //alert(connectionCount + ' connections.');
+                        },
+                        connectionDestroyed: function (event) {
+                          connectionCount--;
+                          console.log(event);
+                          //alert(connectionCount + ' connections.');
+                        },
+                        sessionDisconnected: function sessionDisconnectHandler(event) {
+                          // The event is defined by the SessionDisconnectEvent class
+                          //alert('Disconnected from the session.');
+                          //console.log(event.connectionId);
+                          //document.getElementById('disconnectBtn').css("display","none");
+                          if (event.reason == 'networkDisconnected') {
+                            //alert('Your network connection terminated.')
+                            console.log(event.connectionId);
+                          }
+                        }
+
+
+                      });
+
+
+
+      session.on("signal:newuser", function(event) {
+         console.log("Signal sent from connection " + event.from.id);
+         console.log(event);
+         //alert("Data: "+event.data);
+
+         if(my_conId!=event.from.id){
+              uname.push(event.data);
+              $("#user-list").append('<li>'+event.data+'</liv>'); 
+         }
+
+
+          session.signal(
+              {
+                to: event.from,
+                data: my_name,
+                type: "update"
+              },
+              function(error) {
+                if (error) {
+                  console.log("signal error ("
+                               + error.code
+                               + "): " + error.message);
+                } else {
+                  console.log("Update signal sent to :"+ event.from.id);
+                }
+              }
+            );
+
+
+      });
+
+
+      session.on("signal:update", function(event){
+            console.log("Signal sent from connection " + event.from.id);
+            console.log(event.data);
+            //alert("From: "+event.from.connectionId);
+                uname.push(event.data);
+                $("#user-list").append('<li>'+event.data+'</liv>');
+                //alert(event.data);
+      });   
+
+      session.on("signal:remove", function(event){
+            console.log("Signal sent from connection " + event.from.id);
+            console.log(event.data);
+            //alert("From: "+event.from.connectionId);
+                //uname.splice(event.data);
+                uname.splice(uname.indexOf(event.data),1);
+                var new_data='';
+                for (var n_m in uname){
+                  //alert(uname[n_m]);
+                  new_data+='<li>'+uname[n_m]+'</li>';
+                }
+                $("#user-list").html(new_data);
+                //alert(event.data);
+      });   
+
+    // For Google Chrome only, register your extension by ID. You can
+    // find it at chrome://extensions once the extension is installed.
+    OT.registerScreenSharingExtension('chrome', 'dahnfjcbnjfmklebinjdmopcigiapigb');
+
+    function screenshare(screenType) {
+
+            /*destroying Previous */
+            //screenSharingPublisher.off("accessDenied accessDialogOpened accessDialogClosed accessAllowed streamCreated streamDestroyed");
+            //screenSharingPublisher.destroy();
+            /*******/
+
+
+      OT.checkScreenSharingCapability(function(response) {
+
+            console.log(response);
+            console.log(response['supportedSources']);
+
+          for(var key in response['supportedSources']){
+                if (response.hasOwnProperty(key)) {
+                  console.log(key + " -> " + response['supportedSources'][key]);
+                }
+          }
+
+
+        if (!response.supported || response.extensionRegistered === false) {
+          alert('This browser does not support screen sharing.');
+        } else if (response.extensionInstalled === false) {
+          alert('Please install the screen sharing extension and load your app over https.');
+        } else {
+          // Screen sharing is available. Publish the screen.
+
+          screenSharingPublisher = OT.initPublisher('screen-preview',
+                                    { name: 'Shared Screen',
+                                      insertMode: "replace",
+                                      mirror: false,
+                                      publishAudio : true,
+                                      audioSource : '8elxcHrnB05Y6+O6C+ur54VxFw02Pb5+F6JnFJNXlZI=', 
+                                      videoSource: screenType,
+                                      showControls: true,
+                                      maxResolution: { width: 1280, height: 720 }, // max resolution to encode screen in
+                                      width: w, // width of preview
+                                      height: h, // height of preview
+                                    });
+          session.publish(screenSharingPublisher, function(error) {
+            if (error) {
+              alert('Could not share the screen: ' + error.message);
+            }
+          });
+        }
+      });
+    }
+
+    function stopSharing(){
+            //alert('XXXXXXXX');
+            screenSharingPublisher.off("accessDenied accessDialogOpened accessDialogClosed accessAllowed streamCreated streamDestroyed");
+            //  session.unpublish(screenSharingPublisher);
+            screenSharingPublisher.destroy();
+    }
+
+    //Code to stop publishing to a session
+    function disconnect() {
+
+        session.signal(
+              {
+                data: my_name,
+                type: "remove"
+              },
+              function(error) {
+                if (error) {
+                  console.log("signal error ("
+                               + error.code
+                               + "): " + error.message);
+                } else {
+                  console.log("Remove signal sent to ");
+                }
+              }
+            );
+        $("#user-list").html('');
+        session.disconnect();
+    }
+    
+    session.on("sessionDisconnected", function(event){
+        console.log("sessionDisconnected event fired");
+        alert('Disconnected !');
+        console.log(event);
+        // Session has been disconnected. Include any clean up code here
+
+    });
+
+
+  </script>
+</body>
+</html>

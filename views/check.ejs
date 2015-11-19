@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title> OpenTok Getting Started </title>
+    <link href="/css/app.css" rel="stylesheet" type="text/css">
+
+    <!-- <script src="https://static.opentok.com/v2/js/opentok.js"></script> -->
+    <script src="/js/opentok.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://static.opentok.com/v2/js/opentok.min.js"></script>
+</head>
+
+<body>
+
+    <div id="camera-publisher"></div>
+    <div id="camera-subscriber"></div>
+    <div id="screen-subscriber"></div>
+
+    <div id="publisher"></div>
+    <div id="screen-preview"></div>
+
+
+   <script type="text/javascript">
+
+       // Go to https://dashboard.tokbox.com/ to get your OpenTok API Key and to generate
+    // a test session ID and token:
+    var apiKey    = '<%= APIKey %>',
+      sessionId = '<%= session_id %>',
+      token     = '<%= tok %>';
+
+    // Replace this with the ID for your Chrome screen-sharing extension, which you can
+    // get at chrome://extensions/:
+    
+    var extensionId = 'dahnfjcbnjfmklebinjdmopcigiapigb';
+
+    var session = OT.initSession(apiKey, sessionId);
+
+    /*session.connect(token, function(error) {
+      // publish a stream using the camera and microphone:
+      var publisher = OT.initPublisher('camera-publisher');
+      session.publish(publisher);
+      document.getElementById('shareBtn').disabled = false;
+    });*/
+
+    // Subscribe to a newly created stream
+    session.on('streamCreated', function(event) {
+      alert('Stream !!!');
+      if (event.stream.videoType === 'screen') {
+        // This is a screen-sharing stream published by another client 
+        var subOptions = {
+          width: event.stream.videoDimensions.width / 2,
+          height: event.stream.videoDimensions.height /2
+        };
+        session.subscribe(event.stream, 'screen-subscriber', subOptions);
+      } else {
+        // This is a stream published by another client using the camera and microphone
+        session.subscribe(event.stream, 'camera-subscriber');
+      }
+    });
+
+    // For Google Chrome only, register your extension by ID,
+    // You can find it at chrome://extensions once the extension is installed
+    OT.registerScreenSharingExtension('chrome', extensionId);
+
+    function screenshare() {
+      alert('====');
+      OT.checkScreenSharingCapability(function(response) {
+        if (!response.supported || response.extensionRegistered === false) {
+          alert('This browser does not support screen sharing.');
+        } else if (response.extensionInstalled === false) {
+          alert('Please install the screen sharing extension and load this page over HTTPS.');
+        } else {
+          // Screen sharing is available. Publish the screen.
+          alert('available !!');
+          // Create an element, but do not display it in the HTML DOM:
+          var screenContainerElement = document.createElement('div');
+          //screenContainerElement.setAttribute("id", "qwertyuiopasdfghjkl");
+          var screenSharingPublisher = OT.initPublisher(
+            screenContainerElement,
+            {
+              name: 'Screen',
+              audioSource: null,
+              videoSource: 'screen',
+              mirror: 'true',
+              maxResolution: { width: 1280, height: 720 }, // max resolution to encode screen in
+              width: 1280, // width of preview
+              height: 720, // height of preview
+            },
+            function(error) {
+              if (error) {
+                alert('Something went wrong: ' + error.message);
+              } else {
+                session.publish(
+                  screenSharingPublisher,
+                  function(error) {
+                    if (error) {
+                      alert('Something went wrong: ' + error.message);
+                    }
+                  });
+              }
+            });
+
+
+              /*var publisher = OT.initPublisher('screen-preview', {
+              name: 'Screen',
+              audioSource: null,
+              videoSource: 'screen',
+              mirror: 'true',
+              maxResolution: { width: 1280, height: 720 }, // max resolution to encode screen in
+              width: 1280, // width of preview
+              height: 720, // height of preview
+            }, function(error) {
+              if(error) {
+                alert('Something went wrong: ' + error.message);
+              }
+              else{
+                    session.publish( publisher, function(error) {
+                      if (error) {
+                        alert('Something !!!: ' + error.message);
+                      }
+                  });
+              }
+              // resize the publisher preview to match the encoded video
+              document.getElementById('screen-preview').style.width = pub.videoWidth() + 'px';
+              document.getElementById('screen-preview').style.height = pub.videoHeight() + 'px';
+            });
+            */
+
+          }
+        });
+    }
+
+
+   </script>
+
+    <button onclick="javascript:screenshare();" id="shareBtn">Share your screen</button>
+    
+    <div id="token_heading"><%= tok %></div>
+    <div id="token_heading"><%= APIKey %></div>
+    <div id="token_heading"><%= session_id %></div>
+
+    <div id="videos">
+        <div id="subscriber"></div>
+        <div id="publisher"></div>
+    </div>
+
+    <script type="text/javascript" src="/js/config.js"></script>
+    <!-- <script type="text/javascript" src="/js/app.js"></script> -->
+</body>
+
+</html>

@@ -36,3 +36,52 @@ body, html {
     text-align: justify;
     margin: 5px auto;
 }
+
+#screen-preview{
+    position: absolute;
+    background-color: white;
+    width: 720px;
+    height: 480px;
+    max-width: 720px;
+    max-height: 480px;
+    top: 10px;
+    left: 10px;
+    z-index: 100;
+    margin: 0 auto;
+    /*border: 1px dashed black;
+    border-radius: 2px;*/
+}
+#show-screen{
+
+    margin: 0 auto;
+    height: 480px;
+    width: 720px;
+    border: 1px dashed black;
+    border-radius: 2px;
+}
+#dash{
+    position: absolute;
+    right: 20;
+}/*
+#startBtn{
+    position: absolute;
+    right: 20;
+}
+#stopBtn{
+    position: absolute;
+    right: 20;
+}
+#winBtn{
+    position: absolute;
+    right: 20;
+}*/
+#disBtn{
+   position: absolute;
+    right: 20;
+    top:30; 
+}
+#user-list{
+    bottom: 10;
+    right: 10;
+    position: absolute;
+}

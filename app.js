@@ -1,10 +1,26 @@
 var express = require('express');
 var http = require('http');
+var https = require('https');
 var app = express();
 var path = require('path');
+var fs = require('fs');
 //var server = http.createServer(app).listen(8080);
+
+var privateKey  = fs.readFileSync('sslcert/server.key', 'utf8',function(){
+						console.log('Cannot load Server PrivateKey');
+		});
+var certificate = fs.readFileSync('sslcert/server.crt', 'utf8',function(){
+				console.log('Cannot load Server Certificate !');
+});
+var credentials = {key: privateKey, cert: certificate};
+
 var server = http.Server(app);
-var fs=require("fs");
+
+//Https Configurations
+
+//var httpServer = http.createServer(app);
+var httpsServer = https.createServer(credentials, app);
+
 var OpenTok = require('opentok');
 
 var apiKey='45408722';
@@ -34,6 +50,58 @@ opentok.createSession({mediaMode:"routed"}, function(error, session) {
   }
 });
 
+app.get('/check',function(req, res, next){
+
+token = session.generateToken({
+          role :       'subscriber',
+          data :       'name=Jim'
+    });
+    
+    token = session.generateToken();
+    res.status(200);
+    res.render('check', { tok : token,
+                          APIKey: apiKey,
+                          session_id: GLOBAL.session.sessionId
+                         });
+
+});
+
+app.get('/again/:idd/:name',function(req, res, next){ 
+
+  var user_id= req.params.idd;
+  var user_name= req.params.name;
+	console.log(user_id+'  '+user_name+'  incoming...');
+
+  var role='';
+  var dataStr= '';
+
+    if(user_id==1){
+      role='publisher'; dataStr='name='+user_name;
+      console.log(role+ ' here...');
+    }
+    else{
+      role='subscriber'; dataStr='name='+user_name;
+      console.log(role+ 'here....');
+    }
+
+
+token = session.generateToken({
+          role :   role,
+          data :   dataStr
+      });
+    
+    token = session.generateToken();
+
+    
+    res.status(200);
+    res.render('again', { tok : token,
+                          APIKey: apiKey,
+                          session_id: GLOBAL.session.sessionId,
+                          role: role,
+                          user_name: user_name
+                         });
+
+});
 
 app.get('/index/:iid',function(req, res, next){
     console.log('req for index...');
@@ -98,70 +166,10 @@ app.get('*',function(err,req, res, next) {
   });
 });
 
-/*
-app.get('/',function(req,res){
-	//res.sendFile(__dirname + '/index.html');
-
-	console.log(req.path);
-
-    fs.readFile('index.html',function (err, data){
-        if(!err)
-        {
-            res.writeHead(200, {'Content-Type': 'text/html','Content-Length':data.length});
-            res.write(data);
-            res.end();
-        }
-        else
-        {
-            res.writeHead(400, {'Content-Type': 'text/html'});
-            res.end("index.html not found");
-        }
-    });
-});
-
-
-io.on('connection', function (socket) {
-
-    console.log('a user connected');
-
-    socket.on('send message',function(data){
-
-            io.emit('new message',data);
-            //socket.broadcast.emit('new message',data);
-    });
-
-});
-
-
-
-
-
-app.get("/css/*",function(req,res){
-	console.log("Request:" +req.url);
-	res.sendFile(__dirname + req.url);
-
-});
-
-app.get("/js/*",function(req,res){
-    console.log("Request:" +req.url);
-    res.sendFile(__dirname + req.url);
-
-});
-
-app.get("/img/*",function(req,res){
-	console.log("Request:" +req.url);
-	res.sendFile(__dirname + req.url);
-
-});
-
-app.get("*",function(req,res){
-    console.log("Request:" +req.url);
-    res.send('<center> <h1>What the..??? 404...!!</h1> </center>');
-
-});
-
-*/
-
-server.listen(8080, function(){
+/*server.listen(8080, function(){
   console.log('listening on *: 8080');
+});*/
+
+httpsServer.listen(8080, function(){
+	console.log('Listening on ... * : 8080');
 });

@@ -16,6 +16,7 @@
   "author": "3l-d1abl0",
   "license": "ISC",
   "dependencies": {
+    "https": "^1.0.0",
     "opentok": "^2.3.0"
   }
 }
