@@ -81,7 +81,35 @@ body, html {
     top:30; 
 }
 #user-list{
+    height:200px;
+    width: 140px;
     bottom: 10;
     right: 10;
     position: absolute;
+    border: 1px dotted black;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: block;
+}
+#def{
+    background-color: #A1D490;
+    text-align: center;
+    cursor: pointer;
+}
+#def:hover{
+    background-color: #D4A190;
+}
+.mute{
+    color: red;
+}
+#just-div{
+    width: 120px;
+height: 120px;
+overflow: hidden;
+margin: 5px;
+position: absolute;
+left: 730px;
+}
+.invi{
+    display: none;
 }
