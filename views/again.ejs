@@ -1,4 +1,4 @@
-<html>
+ <html>
 <head>
   <title> Testing Screen Sharing!</title>
 
@@ -43,21 +43,26 @@
       var apiKey    = '<%= APIKey %>';
       var sessionId = '<%= session_id %>';
       var token     = '<%= tok %>';
+      var my_name= '<%= user_name%>';
 
       var connectionCount =0;
       var my_conId='';
       var h = document.getElementById('screen-preview').clientHeight;
       var w = document.getElementById('screen-preview').clientWidth;
-      //alert('h :'+h +'    w: '+w);
+      var pubAudio, publisher;
 
-    var session = OT.initSession(apiKey, sessionId);
+      // For Google Chrome only, register your extension by ID. You can
+      // find it at chrome://extensions once the extension is installed.
+      OT.registerScreenSharingExtension('chrome', 'pflmjbbflhmlhdcpepcjnmmkgmbdibbe');
+
+      var session = OT.initSession(apiKey, sessionId);
 
     console.log('Session:  ');
     console.log(session);
 
 
-    var uname=[ ];
-    var my_name= '<%= user_name%>';
+    var uname=new Object();
+    var fromData= new Object();
 
     window.onbeforeunload = function () {
       session.signal(
@@ -67,9 +72,7 @@
               },
               function(error) {
                 if (error) {
-                  console.log("signal error ("
-                               + error.code
-                               + "): " + error.message);
+                  console.log("signal error (" + error.code + "): " + error.message);
                 } else {
                   console.log("Remove signal sent to ");
                   return true;
@@ -87,28 +90,44 @@
       my_conId=session.connection.connectionId;     
 
           <% if(role=='publisher'){ %>
-                  //alert('sharing... ');
+                  //alert('Audio Sharing..... ');
                   var screenSharingPublisher;
-                  var publisher;
 
-                  var pubOptions = {publishAudio:true, publishVideo:false};
+                  var pubOptions = {name:'instructorAudio',
+                                    publishAudio:true, 
+                                    publishVideo:false, 
+                                    width: document.getElementById('just-div').clientWidth,
+                                    height: document.getElementById('just-div').clientHeight
+                                   };
                   publisher = OT.initPublisher('just-div', pubOptions);
 
                   session.publish(publisher, function(error) {
                       if (error) {
-                        alert('Could not share the screen: ' + error.message);
+                        alert('Could not publish Audio : ' + error.message);
+                      }else{
+                        console.log('Instructor Audio: '+publisher);
                       }
                     });
           <% } %>
 
+          <% if(role=='subscriber'){ %>
+              
+              var audioOptions = {name: 'studentAudio', publishAudio:true, publishVideo:false};
+                  pubAudio = OT.initPublisher('just-div', audioOptions);
+                  session.publish(pubAudio, function(error) {
+                      if (error) {
+                        alert('Cannot publish audio ' + error.message);
+                      }
+                    });
+              
+              
+          <% }%>
           session.signal( { data: my_name,
                             type:"newuser"
                           },
                           function(error) {
                             if (error) {
-                              console.log("signal error ("
-                                           + error.code
-                                           + "): " + error.message);
+                              console.log("signal error (" + error.code + "): " + error.message);
                             } else {
                               console.log("Newuser signal sent.");
                             }
@@ -122,21 +141,39 @@
         console.log(event);
       //session.subscribe(event.stream);
           //alert('Connecting.... ');
-          session.subscribe(event.stream, 'show-screen', {
-              fitMode: 'contain',
-              width: document.getElementById('show-screen').clientWidth,
-              height: document.getElementById('show-screen').clientHeight
-          });
+          if(event.stream.name=="instructorAudio" || event.stream.name=="instructorScreen"){
+              console.log(event.stream.name);
+              session.subscribe(event.stream, 'show-screen', {
+                  fitMode: 'contain',
+                  width: document.getElementById('show-screen').clientWidth,
+                  height: document.getElementById('show-screen').clientHeight
+              });
+          }
+
+
+          if(event.stream.name=="studentAudio"){
+              var newDiv = document.createElement("div");
+              newDiv.setAttribute("class", "invi");
+              console.log('New audio stream from :: '+event.stream.connection.id);
+              session.subscribe(event.stream, newDiv, {
+                  fitMode: 'contain',
+              });
+              console.log('Sub to Student Audio');
+          }
+
+
     });
 
 
-    OT.getDevices(function(error, devices){
+    /*OT.getDevices(function(error, devices){
           console.log("Devices Err: "+error);
           console.log(devices);
-    });
+    });*/
 
     session.on('streamDestroyed', function(event) {  
       console.log('Destroyed : XXXXXXXX  '+ event.reason);
+
+
       //console.log(event);
 
       if (event.reason === 'mediaStopped') {
@@ -150,9 +187,11 @@
       }else if(event.reason=== 'networkDisconnected'){
 
       }
-      var newDiv = document.createElement("div");
+      
+      /*var newDiv = document.createElement("div");
       newDiv.setAttribute("id", "show-screen");
-      document.getElementById('screen-container').appendChild(newDiv);
+      document.getElementById('screen-container').appendChild(newDiv);*/
+    
     });
 
     session.on({
@@ -186,11 +225,16 @@
       session.on("signal:newuser", function(event) {
          console.log("Signal sent from "+event.data+" "+ event.from.id);
          console.log(event);
+         var cId=event.from.id;
          //alert("Data: "+event.data);
 
-         if(my_conId!=event.from.id){
-              uname.push(event.data);
-              $("#user-list").append('<li>'+event.data+'</liv>'); 
+         if(my_conId!=cId){
+              uname[cId]={};  fromData[cId]=event.from;
+              uname[cId].username=event.data;
+              uname[cId].con_id=event.from.id;
+              $("#user-list").append('<div id="def" data-c_id="'+cId+'">'+uname[cId].username+'</div>'); 
+              console.log('New User ::');
+              console.log(uname);
          }
 
 
@@ -202,9 +246,7 @@
               },
               function(error) {
                 if (error) {
-                  console.log("signal error ("
-                               + error.code
-                               + "): " + error.message);
+                  console.log("signal error (" + error.code + "): " + error.message);
                 } else {
                   console.log("Update signal sent to :"+ event.from.id);
                 }
@@ -214,34 +256,57 @@
 
       });
 
+      session.on("signal:mute",function(event){
+            console.log('Publisher::: ');
+            console.log(publisher);
+            if(my_conId==event.from.id){
+                publisher.publishAudio(false);
+            }else{
+                pubAudio.publishAudio(false);
+            }
+      });
+
+      session.on("signal:unmute", function(event){
+            if(my_conId==event.from.id){
+                publisher.publishAudio(true);
+            }else{
+                pubAudio.publishAudio(true); 
+            }
+      });
 
       session.on("signal:update", function(event){
             console.log("Signal sent from "+event.data+" ::: "+ event.from.id);
             console.log(event.data);
-            //alert("From: "+event.from.connectionId);
-                uname.push(event.data);
-                $("#user-list").append('<li>'+event.data+'</liv>');
-                //alert(event.data);
+            var cId=event.from.id;
+
+                uname[cId]={}; fromData[cId]=event.from;
+                uname[cId].username=event.data;
+                uname[cId].con_id=cId;
+
+                //uname[event.from.id].push({ username : event.data});
+                //uname[event.from.id].push({ con_id : event.from.id});
+                $("#user-list").append('<div id="def" data-c_id="'+cId+'" >'+uname[cId].username+'</div>');
+
+                console.log('Update Users ::');
+                console.log(uname);
       });   
 
       session.on("signal:remove", function(event){
-            console.log("Signal sent from connection " + event.from.id);
+            console.log("Signal sent from connection " + event.from.id+" for removal");
             console.log(event.data);
             //alert("From: "+event.from.connectionId);
                 //uname.splice(event.data);
-                uname.splice(uname.indexOf(event.data),1);
+                //uname.splice(uname.indexOf(event.data),1);
+                delete uname[event.from.id];    delete fromData[event.from.id];
                 var new_data='';
-                for (var n_m in uname){
+                for (var id in uname){
                   //alert(uname[n_m]);
-                  new_data+='<li>'+uname[n_m]+'</li>';
+                  new_data+='<div id="def" data-c_id="'+uname[id].con_id+'">'+uname[id].username+'</div>';
                 }
                 $("#user-list").html(new_data);
                 //alert(event.data);
       });   
 
-    // For Google Chrome only, register your extension by ID. You can
-    // find it at chrome://extensions once the extension is installed.
-    OT.registerScreenSharingExtension('chrome', 'dahnfjcbnjfmklebinjdmopcigiapigb');
 
     function screenshare(screenType) {
             if(typeof screenSharingPublisher === "undefined" || screenSharingPublisher!= null){
@@ -277,11 +342,10 @@
           // Screen sharing is available. Publish the screen.
 
           screenSharingPublisher = OT.initPublisher('screen-preview',
-                                    { name: 'Shared Screen',
+                                    { name: 'instructorScreen',
                                       insertMode: "replace",
                                       mirror: false,
                                       publishAudio : true,
-                                      audioSource : 'kw18CghR68999xSlD8ErojKFHcBEMsyqJ9vFF0PKFb4=', 
                                       videoSource: screenType,
                                       showControls: true,
                                       maxResolution: { width: 1280, height: 720 }, // max resolution to encode screen in
@@ -332,9 +396,7 @@
               },
               function(error) {
                 if (error) {
-                  console.log("signal error ("
-                               + error.code
-                               + "): " + error.message);
+                  alert("signal error ("+ error.code + "): " + error.message);
                 } else {
                   console.log("Remove signal sent to ");
                 }
@@ -352,6 +414,43 @@
 
     });
 
+    function ute(c_id,ty){
+      alert('To : '+c_id+' '+ty);
+      console.log('To : '+c_id+' '+ty);
+      console.log(fromData[c_id]);
+            session.signal( { to: fromData[c_id],
+                              data: my_name,
+                              type: ty
+                            },
+                            function(error) {
+                              if (error) {
+                                alert("signal error ("+ error.code + "): " + error.message);
+                              } else {
+                                console.log("Update signal sent to :"+ fromData[c_id].id);
+                              }
+                            }
+                          );
+        }
+
+    <% if(role=='publisher'){ %>
+
+        $('#user-list').on('click', '#def', function() {
+
+            if($(this).hasClass('mute')){
+              $(this).removeClass('mute');
+              var cId=$(this).data("c_id");
+
+                ute(cId,'unmute');
+            }
+            else{
+              $(this).addClass('mute');
+              var cId=$(this).data("c_id");
+
+                ute(cId,'mute');
+            }
+        });
+
+    <% } %>
 
   </script>
 </body>
