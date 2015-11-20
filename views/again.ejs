@@ -8,7 +8,10 @@
 </head>
 <body>
   <!-- <div id="camera"></div> -->
-  <div id="screen-preview"></div>
+  <div id="preview-container">
+        <div id="screen-preview"></div>  
+  </div>
+  
   <div id="screen-container">
           <div id="show-screen"></div>
   </div>
@@ -50,6 +53,7 @@
       var h = document.getElementById('screen-preview').clientHeight;
       var w = document.getElementById('screen-preview').clientWidth;
       var pubAudio, publisher;
+      var screenSharingPublisher;
 
       // For Google Chrome only, register your extension by ID. You can
       // find it at chrome://extensions once the extension is installed.
@@ -91,7 +95,7 @@
 
           <% if(role=='publisher'){ %>
                   //alert('Audio Sharing..... ');
-                  var screenSharingPublisher;
+                  
 
                   var pubOptions = {name:'instructorAudio',
                                     publishAudio:true, 
@@ -112,7 +116,7 @@
 
           <% if(role=='subscriber'){ %>
               
-              var audioOptions = {name: 'studentAudio', publishAudio:true, publishVideo:false};
+              var audioOptions = {name: 'studentAudio', publishAudio:true, publishVideo:false, };
                   pubAudio = OT.initPublisher('just-div', audioOptions);
                   session.publish(pubAudio, function(error) {
                       if (error) {
@@ -144,10 +148,13 @@
           if(event.stream.name=="instructorAudio" || event.stream.name=="instructorScreen"){
               console.log(event.stream.name);
               session.subscribe(event.stream, 'show-screen', {
-                  fitMode: 'contain',
+                  fitMode: 'replace',
                   width: document.getElementById('show-screen').clientWidth,
                   height: document.getElementById('show-screen').clientHeight
               });
+
+              console.log('vidTracks');
+              console.log(event.stream.getVideoTracks());
           }
 
 
@@ -171,26 +178,30 @@
     });*/
 
     session.on('streamDestroyed', function(event) {  
-      console.log('Destroyed : XXXXXXXX  '+ event.reason);
+          
+          console.log('Destroyed : XXXXXXXX  '+ event.reason);
 
 
-      //console.log(event);
+          console.log(event);
 
-      if (event.reason === 'mediaStopped') {
-        // User clicked stop sharing
-        alert('mediaStopped');
-      } else if (event.reason === 'forceUnpublished') {
-        // A moderator forced the user to stop sharing.
-        alert('forceUnpublished');
-      }else if(event.reason=== 'clientDisconnected'){
-        alert('clientDisconnected');
-      }else if(event.reason=== 'networkDisconnected'){
+          if (event.reason === 'mediaStopped') {
+            // User clicked stop sharing
+            //alert('mediaStopped');
+          } else if (event.reason === 'forceUnpublished') {
+            // A moderator forced the user to stop sharing.
+            //alert('forceUnpublished');
+          }else if(event.reason=== 'clientDisconnected'){
+            //alert('clientDisconnected');
+          }else if(event.reason=== 'networkDisconnected'){
 
-      }
-      
-      /*var newDiv = document.createElement("div");
-      newDiv.setAttribute("id", "show-screen");
-      document.getElementById('screen-container').appendChild(newDiv);*/
+          }
+          
+          if(event.stream.name=="instructorScreen"){
+                      var newDiv = document.createElement("div");
+                      newDiv.setAttribute("id", "show-screen");
+                      document.getElementById('screen-container').appendChild(newDiv);
+          }
+
     
     });
 
@@ -262,7 +273,9 @@
             if(my_conId==event.from.id){
                 publisher.publishAudio(false);
             }else{
+                
                 pubAudio.publishAudio(false);
+                alert('You are muted');
             }
       });
 
@@ -270,7 +283,8 @@
             if(my_conId==event.from.id){
                 publisher.publishAudio(true);
             }else{
-                pubAudio.publishAudio(true); 
+                pubAudio.publishAudio(true);
+                alert('You are Unmuted');
             }
       });
 
@@ -309,18 +323,19 @@
 
 
     function screenshare(screenType) {
-            if(typeof screenSharingPublisher === "undefined" || screenSharingPublisher!= null){
+            if(typeof screenSharingPublisher === "undefined" || screenSharingPublisher== null){
               
-            }else{
+            }else{              
               stopSharing();
             }
 
-            if(typeof publisher === "undefined" || publisher!= null){
-              
-            }else{
-              stopAudio();
+            var ele =  document.getElementById('screen-preview');
+            if (typeof(ele) === 'undefined' && ele == null)
+            { 
+                var newDiv = document.createElement("div");
+                    newDiv.setAttribute("id", "screen-preview");
+                document.getElementById('preview-container').appendChild(newDiv);
             }
-
 
       OT.checkScreenSharingCapability(function(response) {
 
@@ -357,9 +372,31 @@
               alert('Could not share the screen: ' + error.message);
             }
           });
+          //console.log('Incoming :');
+          //console.log(screenSharingPublisher);
         }
       });
     }
+
+    /*if(typeof screenSharingPublisher === "undefined" || screenSharingPublisher== null){ }
+    else{
+  
+                screenSharingPublisher.on('mediaStopped', function(event) {
+
+        // The user clicked stop.
+        alert('Hap');
+
+      });
+
+    screenSharingPublisher.on('streamDestroyed', function(event) {
+      alert('Happ');
+          if (event.reason === 'mediaStopped') {
+            Console.log('Destroyed ::: mediaStopped');
+          } else if (event.reason === 'forceUnpublished') {
+            Console.log('Destroyed ::: forceUnpublished');
+          }
+    });
+    } */        
 
     function startAudio(){
       /*
@@ -380,10 +417,16 @@
     }
 
     function stopSharing(){
-            //alert('XXXXXXXX');
+            //alert('Stopped Sharing !');
             screenSharingPublisher.off("accessDenied accessDialogOpened accessDialogClosed accessAllowed streamCreated streamDestroyed");
             //  session.unpublish(screenSharingPublisher);
             screenSharingPublisher.destroy();
+
+            var newDiv = document.createElement("div");
+                newDiv.setAttribute("id", "screen-preview");
+                document.getElementById('preview-container').appendChild(newDiv);
+
+            screenSharingPublisher= undefined;
     }
 
     //Code to stop publishing to a session
@@ -436,6 +479,7 @@
 
         $('#user-list').on('click', '#def', function() {
 
+            //alert(',,,,');
             if($(this).hasClass('mute')){
               $(this).removeClass('mute');
               var cId=$(this).data("c_id");
