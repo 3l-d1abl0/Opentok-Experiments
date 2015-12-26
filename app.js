@@ -4,6 +4,7 @@ var https = require('https');
 var app = express();
 var path = require('path');
 var fs = require('fs');
+var OpenTok = require('opentok');
 //var server = http.createServer(app).listen(8080);
 
 var privateKey  = fs.readFileSync('sslcert/server.key', 'utf8',function(){
@@ -14,19 +15,11 @@ var certificate = fs.readFileSync('sslcert/server.crt', 'utf8',function(){
 });
 var credentials = {key: privateKey, cert: certificate};
 
-var server = http.Server(app);
+//var server = http.Server(app);
+//var httpServer = http.createServer(app);
 
 //Https Configurations
-
-//var httpServer = http.createServer(app);
 var httpsServer = https.createServer(credentials, app);
-
-var OpenTok = require('opentok');
-
-var apiKey='45408722';
-var apiSecret='eeae237d8d9fdc7effc013ade7432188090ae1f5';
-
-opentok = new OpenTok(apiKey, apiSecret);
 
 app.use(express.static(__dirname+'/pub'));
 // view engine setup
@@ -35,18 +28,24 @@ app.set('view engine', 'ejs');
 
 GLOBAL.session='';
 GLOBAL.token='';
+GLOBAL.arch='';
+
+var count=10;
+var apiKey='you api key';
+var apiSecret='Your api secret';
+opentok = new OpenTok(apiKey, apiSecret);
+
 
 //Creating a Session !
 opentok.createSession({mediaMode:"routed"}, function(error, session) {
   if (error) {
     console.log("Error creating session:", error)
   } else {
-
-  // save the sessionId
-  console.log(session);
-  GLOBAL.session= session;
-  console.log('Created Session : '+ session.sessionId);
-  //db.save('session', session.sessionId, done);
+      // save the sessionId
+      console.log('Session Created, Details : ');
+      console.log(session);
+      GLOBAL.session= session;
+      console.log('############################');
   }
 });
 
@@ -70,29 +69,27 @@ app.get('/again/:idd/:name',function(req, res, next){
 
   var user_id= req.params.idd;
   var user_name= req.params.name;
-	console.log(user_id+'  '+user_name+'  incoming...');
 
   var role='';
   var dataStr= '';
 
     if(user_id==1){
       role='publisher'; dataStr='name='+user_name;
-      console.log(role+ ' here...');
-    }
-    else{
+      console.log(user_id+'  '+role+ ' here...');
+    }else{
       role='subscriber'; dataStr='name='+user_name;
-      console.log(role+ 'here....');
+      console.log(user_id+'  '+role+ ' here....');
     }
 
-
-token = session.generateToken({
+    token = session.generateToken({
           role :   role,
           data :   dataStr
       });
     
     token = session.generateToken();
 
-    
+    console.log('Token for '+user_name+' : '+ token);
+
     res.status(200);
     res.render('again', { tok : token,
                           APIKey: apiKey,
@@ -100,47 +97,68 @@ token = session.generateToken({
                           role: role,
                           user_name: user_name
                          });
-
 });
 
-app.get('/index/:iid',function(req, res, next){
-    console.log('req for index...');
-    console.log('Sess '+ session);
-    //res.sendFile(__dirname+'/index.html');
+app.get('/startIt',function(req,res,next){
 
-    user_id= req.params.iid;
+    var archiveOptions = {
+      name: 'Ten Users '+ count,
+      //outputMode: 'individual'
+      hasVideo: true  // Record audio only
+    };
 
-    token = session.generateToken({
-          role :       'subscriber',
-          data :       'name=Johnny'
+    count++;
+
+    opentok.startArchive(GLOBAL.session.sessionId, archiveOptions, function(err, archive) {
+        if (err) {
+           console.log('Start archiveErr : '+err);
+           res.status(200);
+           res.send({stat: 'NO'});
+        } else {
+          // The id property is useful to save off into a database
+              GLOBAL.arch=archive;
+              console.log("new archive:" + archive.id);
+              console.log(GLOBAL.arch);
+              fs.appendFile('archives.txt', JSON.stringify(GLOBAL.arch)+"\r\n\n", function (err) {
+                    if(err){ console.log('Could not write to file...'); }
+              });
+              
+              res.status(200);
+              res.send({stat: 'YO'});
+        }
     });
-    
-    token = session.generateToken();
-
-    //console.log('Token : '+ JSON.stringify(token));
-
-    var role='';
-
-    if(user_id==1){
-      role='pub'; console.log(role+ ' here...');
-    }
-    else{
-      role='sub'; console.log(role+ 'here....');
-    }
-
-    res.status(200);
-    res.render('index', { tok : token,
-                          APIKey: apiKey,
-                          session_id: GLOBAL.session.sessionId,
-                          role: role
-                         });
 });
+app.get('/stopIt',function(req,res,next){
 
-app.get('/try',function(req, res, next){
+      console.log(GLOBAL.arch.id);
 
-    console.log('incoming....');
-    //res.redirect('default.html');
-    res.sendFile(__dirname+'/try.html');
+      opentok.stopArchive(GLOBAL.arch.id, function(err, archive) {
+        if (err){
+            console.log('Stop archiveErr : '+err);
+            res.status(200);
+            res.send({stat: 'NO'});
+        } 
+
+        else{
+            console.log("Stopped archive:" + GLOBAL.arch.id);
+            res.status(200);
+            res.send({stat: 'YO'});
+        }
+
+      });
+
+      /*archive.stop(function(err, archive) {
+        if (err) return console.log(err);
+      });*/
+});
+app.get('/getDetails',function(){ 
+
+    opentok.getArchive(GLOBAL.arch.archiveId, function(err, archive) {
+    if (err) return console.log(err);
+
+    console.log(archive);
+    });
+
 });
 
 app.get('/session',function(req,res,next){

@@ -36,7 +36,13 @@ body, html {
     text-align: justify;
     margin: 5px auto;
 }
-
+#preview-container{
+    width: 722px;
+    height: 482px;
+    /*margin: 0 auto;*/
+    border: 1px dotted black;
+    border-radius: 2px;
+}
 #screen-preview{
     position: absolute;
     background-color: white;
@@ -48,8 +54,7 @@ body, html {
     left: 10px;
     z-index: 100;
     margin: 0 auto;
-    /*border: 1px dashed black;
-    border-radius: 2px;*/
+    
 }
 #show-screen{
 
@@ -62,6 +67,7 @@ body, html {
 #dash{
     position: absolute;
     right: 20;
+    top:70;
 }/*
 #startBtn{
     position: absolute;
@@ -83,13 +89,21 @@ body, html {
 #user-list{
     height:200px;
     width: 140px;
-    bottom: 10;
+    bottom: 20;
     right: 10;
     position: absolute;
     border: 1px dotted black;
     overflow-y: auto;
     overflow-x: hidden;
     display: block;
+}
+#conCount{
+    width: 140px;
+    right: 10;
+    bottom: 5;
+    color: white;
+    position: absolute;
+    text-align: center;
 }
 #def{
     background-color: #A1D490;
@@ -109,7 +123,8 @@ overflow: hidden;
 margin: 5px;
 position: absolute;
 left: 730px;
+top: 20px;
 }
-.invi{
+/*.invi{
     display: none;
-}
+}*/
